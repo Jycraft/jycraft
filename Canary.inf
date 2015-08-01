@@ -1,4 +1,4 @@
-main-class = com.macuyiko.canaryconsole.MainPlugin
+main-class = jycraft.plugin.canary.MainPlugin
 name = CanaryConsole
 author = Seppe vanden Broucke
 version = 1.0.0
