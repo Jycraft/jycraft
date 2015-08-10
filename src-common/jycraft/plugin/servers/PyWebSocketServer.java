@@ -36,6 +36,13 @@ public class PyWebSocketServer extends WebSocketServer {
 	public Object getPlugin() {
 		return plugin;
 	}
+	
+	public void close(WebSocket ws) {
+		connections.get(ws).close();
+		connections.remove(ws);
+		buffers.remove(ws);
+		authorized.remove(ws);
+	}
 
 	@Override
 	public void onOpen(WebSocket ws, ClientHandshake chs) {
@@ -52,10 +59,7 @@ public class PyWebSocketServer extends WebSocketServer {
 
 	@Override
 	public void onClose(WebSocket ws, int arg1, String arg2, boolean arg3) {
-		connections.get(ws).close();
-		connections.remove(ws);
-		buffers.remove(ws);
-		authorized.remove(ws);
+		close(ws);
 	}
 
 	@Override
@@ -103,13 +107,16 @@ public class PyWebSocketServer extends WebSocketServer {
 
 	@Override
 	public void onError(WebSocket ws, Exception exc) {
-
+		close(ws);
 	}
 
 	public class MyOutputStream extends OutputStream {
-		WebSocket ws;
+		private WebSocket ws;
+		private String buffer;
+		
 		public MyOutputStream(WebSocket ws) {
 			this.ws = ws;
+			this.buffer = "";
 		}
 		@Override
 		public void write(int b) {
@@ -118,7 +125,11 @@ public class PyWebSocketServer extends WebSocketServer {
 		}
 		public void write(int[] bytes, int offset, int length) {
 			String s = new String(bytes, offset, length);
-			this.ws.send(s);
+			this.buffer += s;
+			if (this.buffer.endsWith("\n")) {
+				this.ws.send(this.buffer);
+				buffer = "";
+			}
 		}
 	}
 
