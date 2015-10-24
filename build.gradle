@@ -1,0 +1,66 @@
+buildscript{
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.0'
+    }
+}
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "spigot-repo"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+}
+
+sourceSets{
+    common{
+        java{
+            srcDir 'src-common'
+        }
+    }
+    spigot{
+        java{
+            srcDir 'src-spigot'
+        }
+    }
+}
+
+configurations {
+    commonCompile
+    spigotCompile{
+        extendsFrom commonCompile
+    }
+}
+
+dependencies{
+    spigotCompile sourceSets.common.output
+
+    // web sockets
+    commonCompile 'org.java-websocket:Java-WebSocket:1.3.0'
+
+    // jython dependency
+    commonCompile 'org.python:jython-standalone:2.7.1b1'
+
+    // api
+    spigotCompile 'org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT'
+}
+
+processSpigotResources{
+    from 'plugin.yml'
+    from 'config.yml'
+}
+
+task spigotJar(type: com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    from sourceSets.spigot.output
+    from sourceSets.common.output
+
+    dependencies {
+        include(dependency('org.java-websocket:Java-WebSocket'))
+        include(dependency('org.python:jython-standalone'))
+    }
+}
