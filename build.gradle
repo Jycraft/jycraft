@@ -1,0 +1,107 @@
+apply plugin: 'idea'
+apply plugin: 'java'
+
+defaultTasks 'spigotJar', 'canaryJar'
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Spigot"
+        url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
+    }
+    maven {
+        name 'BungeeCord'
+        url 'https://oss.sonatype.org/content/repositories/snapshots'
+    }
+    maven {
+        name 'Canary'
+        url 'http://repo.visualillusionsent.net/repositories/repository/public/'
+    }
+    maven {
+        name = 'minecraft'
+        url = 'https://libraries.minecraft.net/'
+    }
+    maven {
+        name = 'metrics'
+        url = 'http://repo.mcstats.org/content/repositories/public'
+    }
+}
+
+sourceSets{
+    main {
+        java{
+            srcDir 'src-common'
+        }
+    }
+    spigot{
+        java{
+            srcDir 'src-spigot'
+            compileClasspath += main.output
+        }
+    }
+    canary {
+        java {
+            srcDir 'src-canary'
+            compileClasspath += main.output
+        }
+    }
+}
+
+configurations{
+    spigotCompile.extendsFrom compile
+    canaryCompile.extendsFrom compile
+}
+
+dependencies{
+    // web sockets
+    compile 'org.java-websocket:Java-WebSocket:1.3.0'
+
+    // jython dependency
+    compile 'org.python:jython-standalone:2.7.1b1'
+
+    // apis
+    spigotCompile 'org.spigotmc:spigot-api:1.8.8-R0.1-SNAPSHOT'
+    spigotCompile 'org.bukkit:bukkit:1.8.8-R0.1-SNAPSHOT'
+
+    canaryCompile 'net.canarymod:CanaryLib:1.2.0'
+}
+
+dependencies {
+    spigotCompile sourceSets.main.output
+    canaryCompile sourceSets.main.output
+}
+
+processSpigotResources{
+    from 'plugin.yml'
+    from 'config.yml'
+}
+
+processCanaryResources{
+    from 'Canary.inf'
+    into('Lib') {
+        from 'python/mcapi.py'
+    }
+}
+
+// add spigot dependencies to intellij's scope
+idea{
+    module{
+        scopes.COMPILE.plus += [configurations.spigotCompile, configurations.canaryCompile]
+    }
+}
+
+task spigotJar(type: Jar) {
+    baseName = 'jycraft-spigot'
+
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    from sourceSets.spigot.output
+    from sourceSets.main.output
+}
+
+task canaryJar(type: Jar) {
+    baseName = 'jycraft-canary'
+
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    from sourceSets.canary.output
+    from sourceSets.main.output
+}

@@ -5,8 +5,8 @@ import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 
+import jycraft.plugin.JyCraftPlugin;
 import jycraft.plugin.interpreter.PyInterpreter;
-import jycraft.plugin.utils.PluginUtils;
 
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
@@ -14,13 +14,13 @@ import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
 
 public class PyWebSocketServer extends WebSocketServer {
-	private Object plugin;
+	private JyCraftPlugin plugin;
 	private String password;
 	private Map<WebSocket, PyInterpreter> connections;
 	private Map<WebSocket, String> buffers;
 	private Map<WebSocket, Boolean> authorized;
 	
-	public PyWebSocketServer (Object caller, int port, String password) {
+	public PyWebSocketServer (JyCraftPlugin caller, int port, String password) {
 		super(new InetSocketAddress(port));
 		this.plugin = caller;
 		this.password = password;
@@ -33,7 +33,7 @@ public class PyWebSocketServer extends WebSocketServer {
 		return password;
 	}
 
-	public Object getPlugin() {
+	public JyCraftPlugin getPlugin() {
 		return plugin;
 	}
 	
@@ -46,7 +46,7 @@ public class PyWebSocketServer extends WebSocketServer {
 
 	@Override
 	public void onOpen(WebSocket ws, ClientHandshake chs) {
-		PluginUtils.log(plugin, "New websocket connection");
+		plugin.log("New websocket connection");
 		PyInterpreter interpreter = new PyInterpreter();
 		OutputStream os = new MyOutputStream(ws);
 		interpreter.setOut(os);
@@ -92,10 +92,10 @@ public class PyWebSocketServer extends WebSocketServer {
 		boolean more = false;
 		try {
 			if (message.contains("\n")) {
-				more = PluginUtils.parse(getPlugin(), interpreter, message, true);
+				more = getPlugin().parse(interpreter, message, true);
 			} else {
 				buffers.put(ws, buffers.get(ws)+"\n"+message); 
-				more = PluginUtils.parse(getPlugin(), interpreter, buffers.get(ws), false);
+				more = getPlugin().parse(interpreter, buffers.get(ws), false);
 			}
 		} catch (Exception e) {
 			ws.send(e.toString()+"\n");

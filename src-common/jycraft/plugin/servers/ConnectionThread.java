@@ -7,18 +7,17 @@ import java.io.PrintStream;
 import java.net.Socket;
 
 import jycraft.plugin.interpreter.PyInterpreter;
-import jycraft.plugin.utils.PluginUtils;
 
 import org.python.util.InteractiveInterpreter;
 
 public class ConnectionThread implements Runnable {
-	protected Socket socket;
-	protected SocketServer server;
-	protected InteractiveInterpreter interpreter;
-	protected String line;
-	protected String buffer;
-	protected PrintStream out;
-	protected BufferedReader in;
+	private Socket socket;
+	private SocketServer server;
+	private InteractiveInterpreter interpreter;
+	private String line;
+	private String buffer;
+	private PrintStream out;
+	private BufferedReader in;
 	
 	public ConnectionThread(Socket socket, SocketServer socketServer) {
 		this.socket = socket;
@@ -33,7 +32,7 @@ public class ConnectionThread implements Runnable {
 		}
 		this.interpreter.setOut(this.out);
 		this.interpreter.setErr(this.out);
-		PluginUtils.log(this.server.getPlugin(), "New telnet connection");
+		this.server.getPlugin().log("New telnet connection");
 	}
 
 	public void run() {
@@ -58,11 +57,11 @@ public class ConnectionThread implements Runnable {
 						// As we are using readLine() above, this branch
 						// will never occur. The telnet interface is thus
 						// a pure REPL
-						more = PluginUtils.parse(server.getPlugin(), interpreter, line, true);
+						more = server.getPlugin().parse(interpreter, line, true);
 						interpreter.exec(line);
 					} else {
 						buffer += "\n"+line;
-						more = PluginUtils.parse(server.getPlugin(), interpreter, buffer, false);
+						more = server.getPlugin().parse(interpreter, buffer, false);
 					}
 				} catch (Exception e) {
 					out.print(e.toString()+"\n");
