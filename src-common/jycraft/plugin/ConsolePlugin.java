@@ -9,7 +9,7 @@ import jycraft.plugin.servers.SocketServer;
 public class ConsolePlugin {
 	private ConsolePlugin() {}
 		
-	public static void start(Object mainPlugin, int telnetport, int websocketport, String serverpass) {
+	public static void start(JyCraftPlugin mainPlugin, int telnetport, int websocketport, String serverpass) {
 		if (telnetport > -1) {
 			SocketServer server = new SocketServer(mainPlugin, telnetport, serverpass);
 			Thread t = new Thread(server);
