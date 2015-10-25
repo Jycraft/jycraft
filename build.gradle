@@ -1,6 +1,8 @@
 apply plugin: 'idea'
 apply plugin: 'java'
 
+defaultTasks 'spigotJar', 'canaryJar'
+
 repositories {
     mavenCentral()
     maven {
@@ -103,5 +105,3 @@ task canaryJar(type: Jar) {
     from sourceSets.canary.output
     from sourceSets.main.output
 }
-
-build.dependsOn(spigotJar, canaryJar)
