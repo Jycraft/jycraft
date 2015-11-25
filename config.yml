@@ -6,3 +6,6 @@ bukkitconsole:
   password: swordfish
   port: 44444
   maxconnections: 10
+ staticserve:
+  rootdir: "C:/Users/scyth/workspace/WSHttpServerExample/htdocs"
+  saticdir: "C:/Users/scyth/workspace/WSHttpServerExample/htdocs/static"
