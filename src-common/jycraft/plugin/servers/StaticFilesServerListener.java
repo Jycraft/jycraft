@@ -11,11 +11,15 @@ import java.nio.channels.SelectionKey;
  * Created by Tuna on 11/25/2015.
  *
  * class required by HttpServer
- * this handles the socket behavior of the server
- * Idon't know how to implement the methods propperly
+ * this handles the socket behavior of the server !
+ * I don't know how to implement the methods properly
  *
  */
+// TODO: 11/25/2015 Identify which is the appropriate behavior for this class
+
+// TODO: 11/25/2015 implement class properly in the StaticFilesServer instance classes
 public class StaticFilesServerListener implements HttpWebSocketServerListener {
+
 
     public boolean wssConnect(SelectionKey selectionKey) {
         return false;
