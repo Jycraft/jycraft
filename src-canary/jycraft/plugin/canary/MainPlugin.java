@@ -16,8 +16,11 @@ public class MainPlugin extends Plugin implements JyCraftPlugin{
     	log("Loading Python Console");
     	int tcpsocketserverport = getConfig().getInt("pythonconsole.serverconsole.telnetport", 44444);
 		int websocketserverport = getConfig().getInt("pythonconsole.serverconsole.websocketport", 44445);
+		int staticserveport = getConfig().getInt("pythonconsole.staticserve.staticserveport", 44446);
 		String serverpass = getConfig().getString("pythonconsole.serverconsole.password", "swordfish");
-		ConsolePlugin.start(this, tcpsocketserverport, websocketserverport, serverpass);
+		String staticserverootdir = getConfig().getString("pythonconsole.staticserve.rootdir", System.getProperty("user.dir"));
+		String staticservedir = getConfig().getString("pythonconsole.staticserve.staticdir", System.getProperty("user.dir").concat("/static"));
+		ConsolePlugin.start(this, tcpsocketserverport, websocketserverport, staticserveport, serverpass, staticserverootdir, staticservedir);
     	return true;
     }
 
