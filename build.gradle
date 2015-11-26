@@ -26,8 +26,9 @@ repositories {
         url = 'http://repo.mcstats.org/content/repositories/public'
     }
     flatDir {
-        // added local jar will figure out how to download it from github and build it
-        dirs 'file:///C:\\Users\\scyth\\Documents\\WSHttpServer\\target'
+        // added local jar will figure out how to download the sources from github and build it
+        // https://github.com/Joris-van-der-Wel/WSHttpServer this is where the source code is
+        dirs '/home/daniel/Documents/jycraftplugin-libs/WSHttpServer/target/'
     }
 }
 
