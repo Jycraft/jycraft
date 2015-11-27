@@ -25,9 +25,10 @@ repositories {
         name = 'metrics'
         url = 'http://repo.mcstats.org/content/repositories/public'
     }
-    flatDir {
-        // added local jar will figure out how to download it from github and build it
-        dirs 'file:///C:\\Users\\scyth\\Documents\\WSHttpServer\\target'
+    maven {
+        // picks and builds the WSHttpServer jar fom github repository
+        // https://github.com/Joris-van-der-Wel/WSHttpServer
+        url = "https://jitpack.io"
     }
 }
 
@@ -61,7 +62,7 @@ dependencies{
     compile 'org.java-websocket:Java-WebSocket:1.3.0'
 
     // web socket http server
-    compile 'wshttpserver:WSHttpServer-1.0-SNAPSHOT'
+    compile 'com.github.Joris-van-der-Wel:WSHttpServer:80499fa475'
 
     // jython dependency
     compile 'org.python:jython-standalone:2.7.1b1'
