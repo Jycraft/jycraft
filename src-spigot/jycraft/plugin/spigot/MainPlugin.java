@@ -7,6 +7,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.python.util.InteractiveInterpreter;
 
+import java.io.File;
+
 public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 
 	@Override
@@ -14,8 +16,11 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 		getLogger().info("Loading Python Console");
 		int tcpsocketserverport = getConfig().getInt("pythonconsole.serverconsole.telnetport", 44444);
 		int websocketserverport = getConfig().getInt("pythonconsole.serverconsole.websocketport", 44445);
+        int staticserveport = getConfig().getInt("pythonconsole.staticserve.staticserveport", 44446);
 		String serverpass = getConfig().getString("pythonconsole.serverconsole.password", "swordfish");
-		ConsolePlugin.start(this, tcpsocketserverport, websocketserverport, serverpass);
+		String staticserverootdir = getConfig().getString("pythonconsole.staticserve.rootdir", System.getProperty("user.dir").concat("/static"));
+        String staticservedir = getConfig().getString("pythonconsole.staticserve.staticdir", System.getProperty("user.dir").concat("/static"));
+		ConsolePlugin.start(this, tcpsocketserverport, websocketserverport, staticserveport, serverpass, staticserverootdir, staticservedir);
 	}
 
 	@Override
