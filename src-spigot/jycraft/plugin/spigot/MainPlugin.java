@@ -5,6 +5,7 @@ import jycraft.plugin.JyCraftPlugin;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.python.core.PyException;
 import org.python.util.InteractiveInterpreter;
 
 import java.io.File;
@@ -30,21 +31,35 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 
 	@Override
 	public boolean parse(final InteractiveInterpreter interpreter, final String code, final boolean exec) throws Exception {
-		try{
-			final boolean[] morea = new boolean[]{false};
-			BukkitRunnable r = new BukkitRunnable() {
-				public void run() {
+		final TaskResult result = new TaskResult();
+		BukkitRunnable r = new BukkitRunnable() {
+			public void run() {
+				try {
 					if (exec) {
 						interpreter.exec(code);
 					} else {
-						morea[0] = interpreter.runsource(code);
+						result.more = interpreter.runsource(code);
 					}
+				}catch (PyException e) {
+					result.exception = e;
 				}
-			};
-			r.runTask(this);
-			return morea[0];
-		} catch (Throwable e) {
-			throw new Exception(e);
-		}
+			}
+		};
+		// blocking call to run the python code on main thread
+		r.runTask(this);
+		if(result.exception != null)
+			throw result.exception;
+		return result.more;
+	}
+
+	/**
+	 * Holds information about the result of running a task.
+	 *
+	 * This is used to communicate between the websocket thread and the main server thread the python code is executing
+	 * on.
+	 */
+	private class TaskResult {
+		private boolean more = false;
+		private PyException exception;
 	}
 }

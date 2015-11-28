@@ -15,7 +15,7 @@ import java.nio.channels.ServerSocketChannel;
  * server.stop()
  * my guess is that this class should manage httpserver's behavior
  */
-public class StaticFilesSever {
+public class StaticFilesSever extends Thread {
     // class attributes
     private InetSocketAddress socketAddress;
     private ServerSocketChannel ssChannel;
@@ -25,6 +25,7 @@ public class StaticFilesSever {
     private HttpServer server;
 
     public StaticFilesSever(Integer websocketport, String rootdir, String staticdir){
+        super("HttpServer");
         // grab the socket address
         this.socketAddress = new InetSocketAddress("0.0.0.0", websocketport);
         // specify which is the root directory of the httpserver
@@ -69,7 +70,7 @@ public class StaticFilesSever {
 
             // Use a simple sleep in this example
 
-                Thread.sleep(1);
+            Thread.sleep(1);
         }
     }
 
@@ -78,4 +79,16 @@ public class StaticFilesSever {
         this.server.stop();
     }
 
+    @Override
+    public void run() {
+        // call HttpServer.setup() in a wrapper method
+        setupServer();
+        // loop to serve the files
+        try {
+            loopServer();
+        }
+        catch (InterruptedException e) {
+            System.out.printf("Static files server thread interrupted %s.\n", e.getMessage());
+        }
+    }
 }

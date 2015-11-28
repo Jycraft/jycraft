@@ -24,19 +24,8 @@ public class ConsolePlugin {
         if (staticserveport > -1){
             // new file server instance
             StaticFilesSever filesServer = new StaticFilesSever(staticserveport,staticserverootdir, staticservedir);
-            // call HttpServer.setup() in a wrapper method
-            filesServer.setupServer();
-
-            // loop to serve the files
-            try {
-                filesServer.loopServer();
-            }
-            catch (InterruptedException e) {
-                System.out.printf("Static files server thread interrupted %s.\n", e.getMessage());
-            }
+            filesServer.start();
         }
-
-
     }
 
     private static void loadPythonPlugins(String path) {

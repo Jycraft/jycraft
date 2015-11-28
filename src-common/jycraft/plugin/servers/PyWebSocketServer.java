@@ -12,6 +12,7 @@ import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import org.java_websocket.server.WebSocketServer;
+import org.python.core.PyException;
 
 public class PyWebSocketServer extends WebSocketServer {
 	private JyCraftPlugin plugin;
@@ -94,7 +95,7 @@ public class PyWebSocketServer extends WebSocketServer {
 			if (message.contains("\n")) {
 				more = getPlugin().parse(interpreter, message, true);
 			} else {
-				buffers.put(ws, buffers.get(ws)+"\n"+message); 
+				buffers.put(ws, buffers.get(ws) + "\n" + message);
 				more = getPlugin().parse(interpreter, buffers.get(ws), false);
 			}
 		} catch (Exception e) {
@@ -128,6 +129,7 @@ public class PyWebSocketServer extends WebSocketServer {
 			this.buffer += s;
 			if (this.buffer.endsWith("\n")) {
 				this.ws.send(this.buffer);
+				plugin.log("[Python] "+this.buffer.substring(0, this.buffer.length()-1));
 				buffer = "";
 			}
 		}
