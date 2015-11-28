@@ -99,6 +99,7 @@ public class PyWebSocketServer extends WebSocketServer {
 				more = getPlugin().parse(interpreter, buffers.get(ws), false);
 			}
 		} catch (Exception e) {
+			plugin.log("[Python] "+e.toString());
 			ws.send(e.toString()+"\n");
 		}
 		if (!more) buffers.put(ws, "");

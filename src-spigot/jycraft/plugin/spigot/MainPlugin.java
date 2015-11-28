@@ -42,11 +42,22 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 					}
 				}catch (PyException e) {
 					result.exception = e;
+				}finally {
+					// notify other call
+					synchronized (result) {
+						result.done = true;
+						result.notifyAll();
+					}
 				}
 			}
 		};
 		// blocking call to run the python code on main thread
 		r.runTask(this);
+		synchronized (result) {
+			while (!result.done) {
+				result.wait();
+			}
+		}
 		if(result.exception != null)
 			throw result.exception;
 		return result.more;
@@ -61,5 +72,6 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 	private class TaskResult {
 		private boolean more = false;
 		private PyException exception;
+		private boolean done = false;
 	}
 }
