@@ -3,6 +3,7 @@ print('Importing command definitions...')
 from org.bukkit import Bukkit
 from org.bukkit import Location
 from org.bukkit import Material
+from org.bukkit import Effect
 from org.bukkit.command import Command
 
 from random import *
@@ -120,7 +121,7 @@ def getplayer(name):
 
 def randomplayer():
     pl = SERVER.getOnlinePlayers()
-    return getplayer(choice(pl))
+    return choice(pl)
 
 
 def yell(message):
@@ -170,7 +171,7 @@ def bolt(*args, **kwargs):
 
 def bless(*args, **kwargs):
     r = parseargswithpos(args, kwargs, ledger={
-        'type':['type', 0, Particle.Type.REDSTONE],
+        'type':['type', 0, Effect.COLOURED_DUST],
         'vx':['vx', 1, 1],
         'vy':['vy', 2, 1],
         'vz':['vz', 3, 1],
@@ -182,7 +183,7 @@ def bless(*args, **kwargs):
     WORLD.spigot().playEffect(pos(r['x'], r['y'], r['z']),
                               r['type'], r['block'].getId(),
                               r['data'], r['vx'], r['vy'], r['vz'],
-                              r['sp'], r['q'], r['radius'])
+                              r['sp'], r['q'], r['r'])
 
 # don't know how to do this in spigot
 # def lookingat(player):
