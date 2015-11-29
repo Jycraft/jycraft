@@ -21,16 +21,16 @@ public class StaticFilesSever extends Thread {
     private ServerSocketChannel ssChannel;
     private File rootDir;
     // TODO: 11/25/2015 Implement properly webSocketListener instance here
-    private StaticFilesServerListener webSocketListener = new StaticFilesServerListener();
+    private StaticFilesServerListener webSocketListener;
     private HttpServer server;
 
-    public StaticFilesSever(Integer websocketport, String rootdir, String staticdir){
+    public StaticFilesSever(int websocketport, String rootdir, String staticdir, StaticFilesServerListener serverlistener){
         super("HttpServer");
         // grab the socket address
         this.socketAddress = new InetSocketAddress("0.0.0.0", websocketport);
         // specify which is the root directory of the httpserver
         this.rootDir = new File(rootdir);
-
+        this.webSocketListener = serverlistener;
         try {
             // open a channel to create an instance of the server
             this.ssChannel = HttpServer.openServerChannel(socketAddress);
