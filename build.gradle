@@ -82,12 +82,15 @@ dependencies {
 processSpigotResources{
     from 'plugin.yml'
     from 'config.yml'
+    into('Lib') {
+        from 'python/spigot'
+    }
 }
 
 processCanaryResources{
     from 'Canary.inf'
     into('Lib') {
-        from 'python/mcapi.py'
+        from 'python/canary'
     }
 }
 
