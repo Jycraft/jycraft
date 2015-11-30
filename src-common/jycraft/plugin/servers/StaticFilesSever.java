@@ -7,30 +7,22 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.ServerSocketChannel;
 
-/**
- * Created by Tuna on 11/25/2015.
- * this is What I feel to be a dummy class just calling a HttpServer instance
- * using just two basic methods
- * server.setup()
- * server.stop()
- * my guess is that this class should manage httpserver's behavior
- */
+
 public class StaticFilesSever extends Thread {
     // class attributes
     private InetSocketAddress socketAddress;
     private ServerSocketChannel ssChannel;
     private File rootDir;
-    // TODO: 11/25/2015 Implement properly webSocketListener instance here
-    private StaticFilesServerListener webSocketListener = new StaticFilesServerListener();
+    private PySFListener webSocketListener;
     private HttpServer server;
 
-    public StaticFilesSever(Integer websocketport, String rootdir, String staticdir){
+    public StaticFilesSever(int websocketport, String rootdir, String staticdir, PySFListener serverlistener){
         super("HttpServer");
         // grab the socket address
         this.socketAddress = new InetSocketAddress("0.0.0.0", websocketport);
         // specify which is the root directory of the httpserver
         this.rootDir = new File(rootdir);
-
+        this.webSocketListener = serverlistener;
         try {
             // open a channel to create an instance of the server
             this.ssChannel = HttpServer.openServerChannel(socketAddress);
