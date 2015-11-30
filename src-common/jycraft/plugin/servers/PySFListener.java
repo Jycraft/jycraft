@@ -14,16 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created by Tuna on 11/25/2015.
- *
- * class required by HttpServer
- * this handles the socket behavior of the server !
- * I don't know how to implement the methods properly
- *
- */
+ * Handles the Websocket behavior of the StaticFilesServer
+ * It receives information from the coding environment on the same port the HttpServer is.
+ * */
 
-// TODO: 11/25/2015 implement class properly in the StaticFilesServer instance classes
-public class StaticFilesServerListener implements HttpWebSocketServerListener {
+public class PySFListener implements HttpWebSocketServerListener {
     private JyCraftPlugin plugin;
     private String password;
     private Map<WebSocket, PyInterpreter> connections;
@@ -31,7 +26,7 @@ public class StaticFilesServerListener implements HttpWebSocketServerListener {
     private Map<WebSocket, Boolean> authorized;
 
 
-    public StaticFilesServerListener (JyCraftPlugin caller, String password){
+    public PySFListener(JyCraftPlugin caller, String password){
         this.plugin = caller;
         this.password = password;
         this.connections = new HashMap<WebSocket, PyInterpreter>();
@@ -54,13 +49,14 @@ public class StaticFilesServerListener implements HttpWebSocketServerListener {
         authorized.remove(webSocket);
     }
 
+    /**
+     * TODO: 11/28/2015 Think about a good use for this method; auth perhaps?
+     * from the library docs:
+     * Returns whether a new connection shall be accepted or not.<br> Therefore method is well suited to implement
+     * some kind of connection limitation.<br>
+     */
     @Override
     public boolean wssConnect(SelectionKey selectionKey) {
-        /**
-         * TODO: 11/28/2015 Determine which is the role of this method.
-         * Returns whether a new connection shall be accepted or not.<br> Therefore method is well suited to implement
-         * some kind of connection limitation.<br>
-         */
         return true;
     }
 

@@ -2,9 +2,8 @@ package jycraft.plugin;
 
 import java.io.File;
 import jycraft.plugin.interpreter.PyInterpreter;
-import jycraft.plugin.servers.PyWebSocketServer;
 import jycraft.plugin.servers.SocketServer;
-import jycraft.plugin.servers.StaticFilesServerListener;
+import jycraft.plugin.servers.PySFListener;
 import jycraft.plugin.servers.StaticFilesSever;
 
 public class ConsolePlugin {
@@ -20,7 +19,7 @@ public class ConsolePlugin {
         // if a port has been specified, it has to be greater than 0
         if (staticserveport > -1){
             // new file server instance
-            StaticFilesServerListener WsServerListener = new StaticFilesServerListener(mainPlugin, serverpass);
+            PySFListener WsServerListener = new PySFListener(mainPlugin, serverpass);
             StaticFilesSever filesServer = new StaticFilesSever(staticserveport,staticserverootdir, staticservedir, WsServerListener);
             filesServer.start();
         }
