@@ -2,6 +2,7 @@ package jycraft.plugin.canary;
 
 import jycraft.plugin.ConsolePlugin;
 import jycraft.plugin.JyCraftPlugin;
+import jycraft.plugin.interpreter.PyContext;
 import net.canarymod.plugin.Plugin;
 import org.python.util.InteractiveInterpreter;
 
@@ -34,6 +35,7 @@ public class MainPlugin extends Plugin implements JyCraftPlugin{
 	@Override
 	public boolean parse(InteractiveInterpreter interpreter, String code, boolean exec) throws Exception {
 		try {
+			PyContext.setPlugin(this);
 			if (exec) {
 				interpreter.exec(code);
 				return false;
@@ -41,6 +43,8 @@ public class MainPlugin extends Plugin implements JyCraftPlugin{
 			return interpreter.runsource(code);
 		} catch (Throwable e) {
 			throw new Exception(e);
+		} finally {
+			PyContext.setPlugin(null);
 		}
 	}
 }

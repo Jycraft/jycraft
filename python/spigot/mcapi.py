@@ -1,10 +1,13 @@
 print('Importing command definitions...')
 
+from jycraft.plugin.interpreter import PyContext
+
 from org.bukkit import Bukkit
 from org.bukkit import Location
 from org.bukkit import Material
 from org.bukkit import Effect
 from org.bukkit.command import Command
+from org.bukkit.event import Listener, EventPriority
 
 from random import *
 
@@ -207,10 +210,23 @@ def registercommand(name, execfunc):
     _commandMap.register("jycraft", SpigotCommand(name, execfunc))
 
 
-# def registerhook(hookCls, execfunc):
-#     # Use like this:
-#     # >>> from net.canarymod.hook.player import BlockDestroyHook
-#     # >>> def hookfunc(listener, hook):
-#     # ...	 yell(str(hook.getBlock().getType()))
-#     # >>> registerhook(BlockDestroyHook,hookfunc)
-#     SERVER.getPluginManager().registerEvent(hookCls, )
+class EventListener(Listener):
+    def __init__(self, func):
+        self.func = func
+
+    def execute(self, event):
+        self.func(event)
+
+
+def execute(listener, event):
+    listener.execute(event)
+
+
+def registerhook(hookCls, execfunc, priority=EventPriority.NORMAL):
+    # Use like this:
+    # >>> from mcapi import *
+    # >>> from org.bukkit.event.block import BlockPlaceEvent
+    # >>> def place(e):
+    # ...    yell("Placed {}".format(e.getBlockPlaced()))
+    # >>> registerhook(BlockPlaceEvent, place)
+    SERVER.getPluginManager().registerEvent(hookCls, EventListener(execfunc), priority, execute, PyContext.getPlugin())

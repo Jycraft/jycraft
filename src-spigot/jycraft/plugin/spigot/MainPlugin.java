@@ -3,6 +3,7 @@ package jycraft.plugin.spigot;
 import jycraft.plugin.ConsolePlugin;
 import jycraft.plugin.JyCraftPlugin;
 
+import jycraft.plugin.interpreter.PyContext;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.python.core.PyException;
@@ -34,6 +35,7 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 		BukkitRunnable r = new BukkitRunnable() {
 			public void run() {
 				try {
+					PyContext.setPlugin(MainPlugin.this);
 					if (exec) {
 						interpreter.exec(code);
 					} else {
@@ -42,6 +44,7 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 				}catch (PyException e) {
 					result.exception = e;
 				}finally {
+					PyContext.setPlugin(null);
 					// notify other call
 					synchronized (result) {
 						result.done = true;
