@@ -17,8 +17,6 @@ public class PyInterpreter extends InteractiveInterpreter {
 		addPathToPySystemState(sys, "./");
 		addPathToPySystemState(sys, "./python/");
 		addPathToPySystemState(sys, "./python-plugins/");
-		addPathToPySystemState(sys, "./lib-canary/");
-		addPathToPySystemState(sys, "./lib-spigot/");
 		return sys;
 	}
 	

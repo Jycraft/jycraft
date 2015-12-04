@@ -3,13 +3,10 @@ package jycraft.plugin.spigot;
 import jycraft.plugin.ConsolePlugin;
 import jycraft.plugin.JyCraftPlugin;
 
-import jycraft.plugin.interpreter.PyContext;
+import jycraft.plugin.impl.TaskRunnable;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.python.core.PyException;
 import org.python.util.InteractiveInterpreter;
-
-import java.io.File;
 
 public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 
@@ -31,49 +28,15 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 
 	@Override
 	public boolean parse(final InteractiveInterpreter interpreter, final String code, final boolean exec) throws Exception {
-		final TaskResult result = new TaskResult();
+		final TaskRunnable runnable = new TaskRunnable(this, interpreter, code, exec);
 		BukkitRunnable r = new BukkitRunnable() {
+			@Override
 			public void run() {
-				try {
-					PyContext.setPlugin(MainPlugin.this);
-					if (exec) {
-						interpreter.exec(code);
-					} else {
-						result.more = interpreter.runsource(code);
-					}
-				}catch (PyException e) {
-					result.exception = e;
-				}finally {
-					PyContext.setPlugin(null);
-					// notify other call
-					synchronized (result) {
-						result.done = true;
-						result.notifyAll();
-					}
-				}
+				runnable.run();
 			}
-		};
-		// blocking call to run the python code on main thread
+		} ;
+		// run the python code on main thread
 		r.runTask(this);
-		synchronized (result) {
-			while (!result.done) {
-				result.wait();
-			}
-		}
-		if(result.exception != null)
-			throw result.exception;
-		return result.more;
-	}
-
-	/**
-	 * Holds information about the result of running a task.
-	 *
-	 * This is used to communicate between the websocket thread and the main server thread the python code is executing
-	 * on.
-	 */
-	private class TaskResult {
-		private boolean more = false;
-		private PyException exception;
-		private boolean done = false;
+		return runnable.more();
 	}
 }
