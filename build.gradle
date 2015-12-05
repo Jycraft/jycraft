@@ -1,7 +1,7 @@
 apply plugin: 'idea'
 apply plugin: 'java'
 
-defaultTasks 'spigotJar', 'canaryJar'
+defaultTasks 'spigotJar', 'canaryJar', 'spongeJar'
 
 repositories {
     mavenCentral()
@@ -24,6 +24,10 @@ repositories {
     maven {
         name = 'metrics'
         url = 'http://repo.mcstats.org/content/repositories/public'
+    }
+    maven {
+        name = 'sponge'
+        url = 'http://repo.spongepowered.org/maven'
     }
     maven {
         // picks and builds the WSHttpServer jar fom github repository
@@ -50,11 +54,18 @@ sourceSets{
             compileClasspath += main.output
         }
     }
+    sponge {
+        java {
+            srcDir 'src-sponge'
+            compileClasspath += main.output
+        }
+    }
 }
 
 configurations{
     spigotCompile.extendsFrom compile
     canaryCompile.extendsFrom compile
+    spongeCompile.extendsFrom compile
 }
 
 dependencies{
@@ -72,11 +83,14 @@ dependencies{
     spigotCompile 'org.bukkit:bukkit:1.8.8-R0.1-SNAPSHOT'
 
     canaryCompile 'net.canarymod:CanaryLib:1.2.0'
+
+    spongeCompile 'org.spongepowered:spongeapi:2.1-SNAPSHOT'
 }
 
 dependencies {
     spigotCompile sourceSets.main.output
     canaryCompile sourceSets.main.output
+    spongeCompile sourceSets.main.output
 }
 
 processSpigotResources{
@@ -94,10 +108,18 @@ processCanaryResources{
     }
 }
 
+processSpongeResources{
+    into('Lib') {
+        from 'python/sponge'
+    }
+}
+
 // add spigot dependencies to intellij's scope
 idea{
     module{
-        scopes.COMPILE.plus += [configurations.spigotCompile, configurations.canaryCompile]
+        scopes.COMPILE.plus += [configurations.spigotCompile,
+                                configurations.canaryCompile,
+                                configurations.spongeCompile]
     }
 }
 
@@ -114,5 +136,13 @@ task canaryJar(type: Jar) {
 
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     from sourceSets.canary.output
+    from sourceSets.main.output
+}
+
+task spongeJar(type: Jar) {
+    baseName = 'jycraft-sponge'
+
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    from sourceSets.sponge.output
     from sourceSets.main.output
 }

@@ -2,34 +2,37 @@ print('Importing command definitions...')
 
 from jycraft.plugin.interpreter import PyContext
 
-from org.bukkit import Bukkit
-from org.bukkit import Location
-from org.bukkit import Material
-from org.bukkit import Effect
-from org.bukkit.command import Command
-from org.bukkit.event import Listener, EventPriority
+from org.spongepowered.api.text import Texts
+from org.spongepowered.api.world.weather import Weathers
+from org.spongepowered.api.world.explosion import Explosion
+from org.spongepowered.api.block import BlockTypes
+from org.spongepowered.api.entity import EntityTypes
+from org.spongepowered.api.event.cause.entity.spawn import SpawnCause, SpawnTypes
+from org.spongepowered.api.effect.particle import ParticleEffect, ParticleTypes
+
+from org.spongepowered.api.util.blockray import BlockRay
+from org.spongepowered.api.util.command.spec import CommandSpec
+
+from com.flowpowered.math.vector import Vector3d
 
 from random import *
 
-SERVER 	= Bukkit.getServer()
-WORLD 	= SERVER.getWorlds().get(0)
+PLUGIN  = PyContext.getPlugin()
+GAME    = PLUGIN.game
+SERVER 	= GAME.getServer()
+WORLD 	= SERVER.getWorld(SERVER.getDefaultWorld().get().getWorldName()).get()
 MORNING = 2000
 NOON 	= 6000
 EVENING = 14000
 NIGHT 	= 18000
 
-# reflection to get command map
-_commandMapField = SERVER.getClass().getDeclaredField("commandMap")
-_commandMapField.setAccessible(True)
-_commandMap = _commandMapField.get(SERVER)
-
 #full list of BlockTypes available in JavaDocs on canarymod.net
-AIR                 = Material.AIR
-STONE               = Material.STONE
-GRASS               = Material.GRASS
-DIRT                = Material.DIRT
-COBBLESTONE         = Material.COBBLESTONE
-WOOD_PLANKS         = Material.WOOD
+AIR                 = BlockTypes.AIR
+STONE               = BlockTypes.STONE
+GRASS               = BlockTypes.GRASS
+DIRT                = BlockTypes.DIRT
+COBBLESTONE         = BlockTypes.COBBLESTONE
+WOOD_PLANKS         = BlockTypes.PLANKS
 # SAPLING             = BlockType.OakSapling
 # BEDROCK             = BlockType.Bedrock
 # WATER_FLOWING       = BlockType.WaterFlowing
@@ -96,7 +99,7 @@ WOOD_PLANKS         = Material.WOOD
 
 
 def pos(*args):
-    return Location(WORLD, *args)
+    return WORLD.getLocation(*args)
 
 
 def parseargswithpos(args, kwargs, asint=True, ledger={}):
@@ -119,7 +122,7 @@ def parseargswithpos(args, kwargs, asint=True, ledger={}):
 
 
 def getplayer(name):
-    return SERVER.getPlayer(name)
+    return SERVER.getPlayer(name).orElse(None)
 
 
 def randomplayer():
@@ -128,32 +131,44 @@ def randomplayer():
 
 
 def yell(message):
-    SERVER.broadcastMessage(message)
+    SERVER.getBroadcastSink().sendMessage(Texts.of(message))
 
 
-def time(time):
-    WORLD.setTime(time)
+# seems this functionality isn't yet implemented in Sponge
+# https://github.com/SpongePowered/SpongeAPI/issues/393
+# def time(time):
+#     WORLD.setTime(time)
 
 
 def weather(rainsnow, thunder):
-    WORLD.setStorm(rainsnow)
-    WORLD.setThundering(thunder)
+    if thunder:
+        WORLD.forecast(Weathers.THUNDER_STORM)
+    elif rainsnow:
+        WORLD.forecast(Weathers.RAIN)
+    else:
+        WORLD.forecast(Weathers.CLEAR)
 
 
 def explosion(*args, **kwargs):
     r = parseargswithpos(args, kwargs, ledger={'power':['power', 0, 8]})
-    WORLD.createExplosion(r['x'], r['y'], r['z'], r['power'], True)
+    WORLD.triggerExplosion(
+        Explosion.builder()
+            .world(WORLD)
+            .origin(Vector3d(r['x'], r['y'], r['z']))
+            .radius(int(r['power']))
+            .shouldBreakBlocks(True)
+            .canCauseFire(True).build())
 
 
 def teleport(*args, **kwargs):
     r = parseargswithpos(args, kwargs, ledger={'whom':['whom', 0, 'GameStartSchool']})
     someone = getplayer(r['whom'])
-    someone.teleport(pos(r['x'], r['y'], r['z']))
+    someone.setLocation(pos(r['x'], r['y'], r['z']))
 
 
 def setblock(*args, **kwargs):
     r = parseargswithpos(args, kwargs, ledger={'type':['type', 0, COBBLESTONE]})
-    WORLD.getBlockAt(r['x'], r['y'], r['z']).setType(r['type'])
+    WORLD.setBlockType(r['x'], r['y'], r['z'], r['type'], True)
 
 
 def cube(*args, **kwargs):
@@ -169,37 +184,29 @@ def cube(*args, **kwargs):
 
 def bolt(*args, **kwargs):
     r = parseargswithpos(args, kwargs)
-    WORLD.strikeLightning(pos(r['x'], r['y'], r['z']))
+    entity = WORLD.createEntity(EntityTypes.LIGHTNING, Vector3d(r['x'], r['y'], r['z']))
+    if entity.isPresent():
+        WORLD.spawnEntity(entity, SpawnCause.builder().type(SpawnTypes.PLUGIN).build())
 
 
 def bless(*args, **kwargs):
     r = parseargswithpos(args, kwargs, ledger={
-        'type':['type', 0, Effect.COLOURED_DUST],
+        'type':['type', 0, ParticleTypes.REDSTONE],
         'vx':['vx', 1, 1],
         'vy':['vy', 2, 1],
         'vz':['vz', 3, 1],
-        'sp':['sp', 4, 100],
-        'q':['q', 5, 100],
-        'r':['r', 6, 20],
-        'block':['block', 7, COBBLESTONE],
-        'data':['data', 8, 0]})
-    WORLD.spigot().playEffect(pos(r['x'], r['y'], r['z']),
-                              r['type'], r['block'].getId(),
-                              r['data'], r['vx'], r['vy'], r['vz'],
-                              r['sp'], r['q'], r['r'])
-
-# don't know how to do this in spigot
-# def lookingat(player):
-#     return LineTracer(player).getTargetBlock()
+        'q':['q', 5, 100]})
+    WORLD.spawnParticles(
+        ParticleEffect.builder()
+            .type(r['type'])
+            .count(r['q'])
+            .motion(Vector3d(r['vx'], r['vy'], r['vz']))
+            .build(),
+        Vector3d(r['x'], r['y'], r['z']))
 
 
-class SpigotCommand(Command):
-    def __init__(self, name, execfunc):
-        super(SpigotCommand, self).__init__(name)
-        self.execfunc = execfunc
-
-    def execute(self, caller, label, parameters):
-        self.execfunc(caller, parameters)
+def lookingat(player):
+    return getattr(BlockRay, 'from')(player).filter(BlockRay.ONLY_AIR_FILTER).end().orElse(None)
 
 
 def registercommand(name, execfunc):
@@ -207,26 +214,17 @@ def registercommand(name, execfunc):
     # >>> def functiontest(caller, params):
     # ...	 yell(params[0])
     # >>> registercommand("test", functiontest)
-    _commandMap.register("jycraft", SpigotCommand(name, execfunc))
+    spec = CommandSpec.builder()\
+        .executor(execfunc)\
+        .build()
+    GAME.getCommandDispatcher().register(PyContext.getPlugin(), spec, name)
 
 
-class EventListener(Listener):
-    def __init__(self, func):
-        self.func = func
-
-    def execute(self, event):
-        self.func(event)
-
-
-def execute(listener, event):
-    listener.execute(event)
-
-
-def registerhook(hookCls, execfunc, priority=EventPriority.NORMAL):
+def registerhook(hookCls, execfunc):
     # Use like this:
     # >>> from mcapi import *
-    # >>> from org.bukkit.event.block import BlockPlaceEvent
+    # >>> from org.spongepowered.api.event.block import ChangeBlockEven
     # >>> def place(e):
     # ...    yell("Placed {}".format(e.getBlockPlaced()))
-    # >>> registerhook(BlockPlaceEvent, place)
-    SERVER.getPluginManager().registerEvent(hookCls, EventListener(execfunc), priority, execute, PyContext.getPlugin())
+    # >>> registerhook(ChangeBlockEvent.Break, place)
+    GAME.getEventManager().registerListenr(PyContext.getPlugin(), hookCls, execfunc)
