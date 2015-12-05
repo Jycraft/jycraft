@@ -108,6 +108,12 @@ processCanaryResources{
     }
 }
 
+processSpongeResources{
+    into('Lib') {
+        from 'python/sponge'
+    }
+}
+
 // add spigot dependencies to intellij's scope
 idea{
     module{
