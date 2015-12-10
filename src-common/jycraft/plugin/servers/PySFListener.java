@@ -1,7 +1,9 @@
 package jycraft.plugin.servers;
 
+import com.google.gson.*;
 import jycraft.plugin.JyCraftPlugin;
 import jycraft.plugin.interpreter.PyInterpreter;
+import jycraft.plugin.json.*;
 import org.java_websocket.WebSocket;
 import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
@@ -24,6 +26,8 @@ public class PySFListener implements HttpWebSocketServerListener {
     private Map<WebSocket, PyInterpreter> connections;
     private Map<WebSocket, String> buffers;
     private Map<WebSocket, Boolean> authorized;
+    private JsonParser parser = new JsonParser();
+    private Gson gson;
 
 
     public PySFListener(JyCraftPlugin caller, String password){
@@ -32,6 +36,7 @@ public class PySFListener implements HttpWebSocketServerListener {
         this.connections = new HashMap<WebSocket, PyInterpreter>();
         this.buffers = new HashMap<WebSocket, String>();
         this.authorized = new HashMap<WebSocket, Boolean>();
+        this.gson = new Gson();
     }
 
     public String getPassword(){
@@ -49,14 +54,9 @@ public class PySFListener implements HttpWebSocketServerListener {
         authorized.remove(webSocket);
     }
 
-    /**
-     * TODO: 11/28/2015 Think about a good use for this method; auth perhaps?
-     * from the library docs:
-     * Returns whether a new connection shall be accepted or not.<br> Therefore method is well suited to implement
-     * some kind of connection limitation.<br>
-     */
     @Override
     public boolean wssConnect(SelectionKey selectionKey) {
+        // accept incoming connections
         return true;
     }
 
@@ -81,53 +81,83 @@ public class PySFListener implements HttpWebSocketServerListener {
     @Override
     public void wssMessage(WebSocket webSocket, String message) {
         boolean auth = authorized.get(webSocket);
-
-        if (message.startsWith("login!")){
-            String p = message.split("!")[1];
-            if(!this.password.equals(p)){
-                webSocket.send("Incorrect password!\n");
-            }
-            else {
-                this.authorized.put(webSocket, true);
-                webSocket.send("Welcome!\n");
-                webSocket.send(">>> ");
-            }
+        MessageType messageType;
+        JsonElement jsonmessage = null;
+        Status status;
+        LoginMessage loginMessage;
+        LogoutMessage logoutMessage;
+        try {
+            jsonmessage = parser.parse(message);
+        } catch(JsonParseException jpe){
+            status = new Status(503, "Client's Json failed to parse");
+            loginMessage = new LoginMessage("login", status);
+            webSocket.send(this.gson.toJson(loginMessage));
             return;
         }
 
-        if (message.equals("exit!")){
-            webSocket.close(CloseFrame.NORMAL);
-            return;
-        }
-        if (!auth){
-            webSocket.send("Not authorized, login first by sending 'login!<PASSWORD>'\n");
-            return;
-        }
+        messageType = MessageType.valueOf(jsonmessage.getAsJsonObject().get("type").getAsString());
 
-        final PyInterpreter interpreter = connections.get(webSocket);
-        boolean more = false;
-
-        try{
-            if (message.contains("\n")){
-                more = getPlugin().parse(interpreter, message, true);
-            }
-            else {
-                buffers.put(webSocket, buffers.get(webSocket) + "\n" + message);
-                more = getPlugin().parse(interpreter, buffers.get(webSocket), false);
-            }
-        }
-        catch (Exception e){
-            plugin.log("[Python] " + e.toString());
-            webSocket.send(e.toString() + "\n");
-        }
-        if (!more){
-            buffers.put(webSocket, "");
-        }
-        if (more){
-            webSocket.send("... ");
-        }
-        else {
-            webSocket.send(">>> ");
+        switch (messageType) {
+            case login:
+                if (!this.password.equals(jsonmessage.getAsJsonObject().get("password").getAsString())) {
+                    status = new Status(500, "Login failed");
+                    loginMessage = new LoginMessage("login", status);
+                    webSocket.send(this.gson.toJson(loginMessage));
+                } else {
+                    this.authorized.put(webSocket, true);
+                    status = new Status(100, "Login successful");
+                    loginMessage = new LoginMessage("login", status);
+                    webSocket.send(this.gson.toJson(loginMessage));
+                }
+                return;
+            case execute:
+                if (!auth) {
+                    status = new Status(501, "Not authenticated");
+                    loginMessage = new LoginMessage("login", status);
+                    webSocket.send(this.gson.toJson(loginMessage));
+                    return;
+                }
+                final PyInterpreter interpreter = connections.get(webSocket);
+                boolean more = false;
+                String command = jsonmessage.getAsJsonObject().get("command").getAsString();
+                ExecuteMessage exmessage;
+                try{
+                    if (command.contains("\n")){
+                        more = getPlugin().parse(interpreter, command, true);
+                    }
+                    else {
+                        buffers.put(webSocket, buffers.get(webSocket) + "\n" + command);
+                        more = getPlugin().parse(interpreter, buffers.get(webSocket), false);
+                    }
+                }
+                catch (Exception e){
+                    plugin.log("[Python] " + e.toString());
+                    status = new Status(3, "Python Exception");
+                    exmessage = new ExecuteMessage("execute", new ExecuteException(e.getMessage(), e.getStackTrace().toString()), status);
+                    webSocket.send(this.gson.toJson(exmessage));
+                }
+                if (!more){
+                    buffers.put(webSocket, "");
+                }
+                if (more){
+                    status = new Status(101, "More input expected");
+                    exmessage = new ExecuteMessage("execute", status, "... ");
+                    webSocket.send(this.gson.toJson(exmessage));
+                }
+                else {
+                    status = new Status(102, "Expecting input");
+                    exmessage = new ExecuteMessage("execute", status, ">>> ");
+                    webSocket.send(this.gson.toJson(exmessage));
+                }
+                break;
+            case logout:
+                status = new Status(100, "Logout successful");
+                logoutMessage = new LogoutMessage("login", status);
+                webSocket.send(this.gson.toJson(logoutMessage));
+                webSocket.close(CloseFrame.NORMAL);
+                break;
+            default:
+                break;
         }
 
     }
@@ -135,14 +165,20 @@ public class PySFListener implements HttpWebSocketServerListener {
     @Override
     public void wssMessage(WebSocket webSocket, ByteBuffer message) {
         boolean auth = this.authorized.get(webSocket);
-
+        Status status;
+        LoginMessage loginMessage;
+        ExecuteMessage exmessage;
         if (!auth){
-            webSocket.send("Not authorized, login first by sending 'login!<PASSWORD>'\n");
+            status = new Status(501, "Not authenticated");
+            loginMessage = new LoginMessage("login", status);
+            webSocket.send(this.gson.toJson(loginMessage));
             return;
         }
         else
         {
-            webSocket.send("ByteBuffers not implemented yet");
+            status = new Status(4, "ByteBuffers not implemented yet");
+            exmessage = new ExecuteMessage("execute", status, "ByteBuffers not implemented");
+            webSocket.send(this.gson.toJson(exmessage));
             plugin.log("ByteBuffer message not implemented");
             return;
         }
@@ -154,13 +190,15 @@ public class PySFListener implements HttpWebSocketServerListener {
         close(webSocket);
     }
 
-    public class SFLOutputStream extends OutputStream {
+    private class SFLOutputStream extends OutputStream {
         private WebSocket ws;
-        String buffer;
+        private String buffer;
+        private Gson gson;
 
         public SFLOutputStream(WebSocket ws){
             this.ws = ws;
             this.buffer = "";
+            this.gson = new Gson();
         }
 
         @Override
@@ -169,10 +207,14 @@ public class PySFListener implements HttpWebSocketServerListener {
             write(bytes, 0, bytes.length);
         }
         public void write(int[] bytes, int offset, int length) {
+            Status status;
+            ExecuteMessage exmessage;
             String s = new String(bytes, offset, length);
             this.buffer += s;
             if (this.buffer.endsWith("\n")) {
-                this.ws.send(this.buffer);
+                status = new Status(105, "Sending Result");
+                exmessage = new ExecuteMessage("execute", status, this.buffer);
+                ws.send(this.gson.toJson(exmessage));
                 plugin.log("[Python] "+this.buffer.substring(0, this.buffer.length()-1));
                 buffer = "";
             }
