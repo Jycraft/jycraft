@@ -11,7 +11,7 @@ from org.spongepowered.api.event.cause.entity.spawn import SpawnCause, SpawnType
 from org.spongepowered.api.effect.particle import ParticleEffect, ParticleTypes
 
 from org.spongepowered.api.util.blockray import BlockRay
-from org.spongepowered.api.util.command.spec import CommandSpec
+from org.spongepowered.api.command.spec import CommandSpec
 
 from com.flowpowered.math.vector import Vector3d
 
