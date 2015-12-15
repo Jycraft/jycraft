@@ -1,6 +1,7 @@
 package jycraft.plugin.servers;
 
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import jycraft.plugin.JyCraftPlugin;
 import jycraft.plugin.interpreter.PyInterpreter;
 import jycraft.plugin.json.*;
@@ -36,7 +37,7 @@ public class PySFListener implements HttpWebSocketServerListener {
         this.connections = new HashMap<WebSocket, PyInterpreter>();
         this.buffers = new HashMap<WebSocket, String>();
         this.authorized = new HashMap<WebSocket, Boolean>();
-        this.gson = new Gson();
+        this.gson = GsonUtils.getGson();
     }
 
     public String getPassword(){
@@ -70,7 +71,6 @@ public class PySFListener implements HttpWebSocketServerListener {
         connections.put(webSocket,interpreter);
         buffers.put(webSocket, "");
         authorized.put(webSocket, password == null || "".equals(password));
-        webSocket.send("Login by sending 'login!<PASSWORD>'\n");
     }
 
     @Override
@@ -82,45 +82,39 @@ public class PySFListener implements HttpWebSocketServerListener {
     public void wssMessage(WebSocket webSocket, String message) {
         boolean auth = authorized.get(webSocket);
         MessageType messageType;
-        JsonElement jsonmessage = null;
+        final TypeToken<Message> messageTypeToken = new TypeToken<Message>(){};
+        final Message jsonMessage = gson.fromJson(message, messageTypeToken.getType());
         Status status;
-        LoginMessage loginMessage;
-        LogoutMessage logoutMessage;
-        try {
-            jsonmessage = parser.parse(message);
-        } catch(JsonParseException jpe){
-            status = new Status(503, "Client's Json failed to parse");
-            loginMessage = new LoginMessage("login", status);
-            webSocket.send(this.gson.toJson(loginMessage));
-            return;
-        }
+        Message loginMessage;
+        Message logoutMessage;
 
-        messageType = MessageType.valueOf(jsonmessage.getAsJsonObject().get("type").getAsString());
+        messageType = MessageType.valueOf(jsonMessage.getType().toUpperCase());
+        plugin.log(messageType.name());
 
         switch (messageType) {
-            case login:
-                if (!this.password.equals(jsonmessage.getAsJsonObject().get("password").getAsString())) {
+            case LOGIN:
+                if (!this.password.equals(jsonMessage.getPassword())) {
                     status = new Status(500, "Login failed");
-                    loginMessage = new LoginMessage("login", status);
+                    loginMessage = new Message("login", status);
                     webSocket.send(this.gson.toJson(loginMessage));
                 } else {
                     this.authorized.put(webSocket, true);
                     status = new Status(100, "Login successful");
-                    loginMessage = new LoginMessage("login", status);
+                    loginMessage = new Message("login", status);
                     webSocket.send(this.gson.toJson(loginMessage));
                 }
                 return;
-            case execute:
+            case INTERACTIVE:
                 if (!auth) {
                     status = new Status(501, "Not authenticated");
-                    loginMessage = new LoginMessage("login", status);
+                    loginMessage = new Message("login", status);
                     webSocket.send(this.gson.toJson(loginMessage));
                     return;
                 }
-                final PyInterpreter interpreter = connections.get(webSocket);
                 boolean more = false;
-                String command = jsonmessage.getAsJsonObject().get("command").getAsString();
-                ExecuteMessage exmessage;
+                final PyInterpreter interpreter = connections.get(webSocket);
+                String command = jsonMessage.getCommand();
+                Message exmessage;
                 try{
                     if (command.contains("\n")){
                         more = getPlugin().parse(interpreter, command, true);
@@ -133,7 +127,7 @@ public class PySFListener implements HttpWebSocketServerListener {
                 catch (Exception e){
                     plugin.log("[Python] " + e.toString());
                     status = new Status(3, "Python Exception");
-                    exmessage = new ExecuteMessage("execute", new ExecuteException(e.getMessage(), e.getStackTrace().toString()), status);
+                    exmessage = new InteractiveMessage("interactive", status);
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 if (!more){
@@ -141,22 +135,28 @@ public class PySFListener implements HttpWebSocketServerListener {
                 }
                 if (more){
                     status = new Status(101, "More input expected");
-                    exmessage = new ExecuteMessage("execute", status, "... ");
+                    exmessage = new InteractiveMessage("interactive", status, "... ");
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 else {
                     status = new Status(102, "Expecting input");
-                    exmessage = new ExecuteMessage("execute", status, ">>> ");
+                    exmessage = new Message("interactive", status, ">>> ");
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 break;
-            case logout:
+            case FILE:
+                plugin.log("Not implemented Yet");
+                break;
+            case LOGOUT:
                 status = new Status(100, "Logout successful");
-                logoutMessage = new LogoutMessage("login", status);
+                logoutMessage = new Message("login", status);
                 webSocket.send(this.gson.toJson(logoutMessage));
                 webSocket.close(CloseFrame.NORMAL);
                 break;
             default:
+                status = new Status(500, "Unidentified action type");
+                logoutMessage = new Message("undefined", status);
+                webSocket.send(this.gson.toJson(logoutMessage));
                 break;
         }
 
@@ -166,23 +166,24 @@ public class PySFListener implements HttpWebSocketServerListener {
     public void wssMessage(WebSocket webSocket, ByteBuffer message) {
         boolean auth = this.authorized.get(webSocket);
         Status status;
-        LoginMessage loginMessage;
-        ExecuteMessage exmessage;
+        Message loginMessage;
+        InteractiveMessage exmessage;
         if (!auth){
             status = new Status(501, "Not authenticated");
-            loginMessage = new LoginMessage("login", status);
+            loginMessage = new Message("login", status);
             webSocket.send(this.gson.toJson(loginMessage));
             return;
         }
         else
         {
             status = new Status(4, "ByteBuffers not implemented yet");
-            exmessage = new ExecuteMessage("execute", status, "ByteBuffers not implemented");
+            exmessage = new InteractiveMessage("execute", status, "ByteBuffers not implemented");
             webSocket.send(this.gson.toJson(exmessage));
             plugin.log("ByteBuffer message not implemented");
             return;
         }
     }
+
 
 
     @Override
@@ -194,11 +195,10 @@ public class PySFListener implements HttpWebSocketServerListener {
         private WebSocket ws;
         private String buffer;
         private Gson gson;
-
         public SFLOutputStream(WebSocket ws){
             this.ws = ws;
             this.buffer = "";
-            this.gson = new Gson();
+            this.gson = GsonUtils.getGson();
         }
 
         @Override
@@ -208,13 +208,15 @@ public class PySFListener implements HttpWebSocketServerListener {
         }
         public void write(int[] bytes, int offset, int length) {
             Status status;
-            ExecuteMessage exmessage;
+            Message jsonMessage;
             String s = new String(bytes, offset, length);
             this.buffer += s;
             if (this.buffer.endsWith("\n")) {
-                status = new Status(105, "Sending Result");
-                exmessage = new ExecuteMessage("execute", status, this.buffer);
-                ws.send(this.gson.toJson(exmessage));
+        // TODO: 15/12/15 FIX IllegalArgumentException types and labels must be unique while instatinating jsonmessage
+                status = new Status(100, "Sending result");
+                jsonMessage = new Message("interactive", status);
+                jsonMessage.setResult(this.buffer);
+                ws.send(this.gson.toJson(jsonMessage));
                 plugin.log("[Python] "+this.buffer.substring(0, this.buffer.length()-1));
                 buffer = "";
             }
