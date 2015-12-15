@@ -127,7 +127,7 @@ public class PySFListener implements HttpWebSocketServerListener {
                 catch (Exception e){
                     plugin.log("[Python] " + e.toString());
                     status = new Status(3, "Python Exception");
-                    exmessage = new InteractiveMessage("interactive", status);
+                    exmessage = new Message("interactive", status);
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 if (!more){
@@ -135,12 +135,14 @@ public class PySFListener implements HttpWebSocketServerListener {
                 }
                 if (more){
                     status = new Status(101, "More input expected");
-                    exmessage = new InteractiveMessage("interactive", status, "... ");
+                    exmessage = new Message("interactive", status);
+                    exmessage.setResult("... ");
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 else {
                     status = new Status(102, "Expecting input");
-                    exmessage = new Message("interactive", status, ">>> ");
+                    exmessage = new Message("interactive", status);
+                    exmessage.setResult(">>> ");
                     webSocket.send(this.gson.toJson(exmessage));
                 }
                 break;
@@ -167,7 +169,7 @@ public class PySFListener implements HttpWebSocketServerListener {
         boolean auth = this.authorized.get(webSocket);
         Status status;
         Message loginMessage;
-        InteractiveMessage exmessage;
+        Message exmessage;
         if (!auth){
             status = new Status(501, "Not authenticated");
             loginMessage = new Message("login", status);
@@ -177,7 +179,8 @@ public class PySFListener implements HttpWebSocketServerListener {
         else
         {
             status = new Status(4, "ByteBuffers not implemented yet");
-            exmessage = new InteractiveMessage("execute", status, "ByteBuffers not implemented");
+            exmessage = new Message("execute", status);
+            exmessage.setResult("ByteBuffer message not implemented");
             webSocket.send(this.gson.toJson(exmessage));
             plugin.log("ByteBuffer message not implemented");
             return;
