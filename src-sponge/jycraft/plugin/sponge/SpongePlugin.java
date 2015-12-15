@@ -13,7 +13,7 @@ import org.spongepowered.api.Game;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.state.GameInitializationEvent;
 import org.spongepowered.api.plugin.Plugin;
-import org.spongepowered.api.service.config.DefaultConfig;
+import org.spongepowered.api.config.DefaultConfig;
 
 import java.io.File;
 import java.io.IOException;
