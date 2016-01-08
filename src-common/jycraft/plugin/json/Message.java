@@ -8,6 +8,8 @@ public class Message {
     protected String command;
     protected String password;
     protected String result;
+    protected String filePath;
+
     private static final RuntimeTypeAdapterFactory<Message> adapter =
             RuntimeTypeAdapterFactory.of(Message.class);
     private static final HashSet<Class<?>> registeredClasses= new HashSet<Class<?>>();
@@ -80,10 +82,20 @@ public class Message {
         this.command = command;
     }
 
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String flePath) {
+        this.filePath = flePath;
+    }
+
     @Override
     public String toString(){
         String s;
         s = "{\"type\":\"" + this.type + "\", \"status\":\"\"" + this.status + "\"\", \"command\":\""+ this.command +"\"}";
         return  s;
     }
+
+
 }

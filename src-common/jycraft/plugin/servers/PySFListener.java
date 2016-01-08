@@ -10,6 +10,7 @@ import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import wshttpserver.HttpWebSocketServerListener;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -147,7 +148,38 @@ public class PySFListener implements HttpWebSocketServerListener {
                 }
                 break;
             case FILE:
-                plugin.log("Not implemented Yet");
+
+                if (!auth) {
+                    status = new Status(501, "Not authenticated");
+                    loginMessage = new Message("login", status);
+                    webSocket.send(this.gson.toJson(loginMessage));
+                    return;
+                }
+                final PyInterpreter fileInterpreter = connections.get(webSocket);
+                String filePath = jsonMessage.getFilePath();
+                Message fileExmessage;
+                boolean success = true;
+                final File script;
+                try{
+                   script = new File(filePath);
+                    more = getPlugin().parse(fileInterpreter, script, true);
+                }
+                catch (Exception e){
+                    success = false;
+                    plugin.log("[Python] " + e.getLocalizedMessage());
+                    status = new Status(3, "Python Exception");
+                    fileExmessage = new Message("file", status);
+                    webSocket.send(this.gson.toJson(fileExmessage));
+
+                }
+                finally {
+                    status = new Status(102, "File Executed");
+                    fileExmessage = new Message("file", status);
+                    fileExmessage.setResult("Execution: " + (success ? "successful": "unsuccessful"));
+                    webSocket.send(this.gson.toJson(fileExmessage));
+                }
+
+
                 break;
             case LOGOUT:
                 status = new Status(100, "Logout successful");
