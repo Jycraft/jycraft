@@ -148,7 +148,6 @@ public class PySFListener implements HttpWebSocketServerListener {
                 }
                 break;
             case FILE:
-
                 if (!auth) {
                     status = new Status(501, "Not authenticated");
                     loginMessage = new Message("login", status);
@@ -160,13 +159,14 @@ public class PySFListener implements HttpWebSocketServerListener {
                 Message fileExmessage;
                 boolean success = true;
                 final File script;
+
                 try{
-                   script = new File(filePath);
-                    more = getPlugin().parse(fileInterpreter, script, true);
+                   script = new File(System.getProperty("user.dir").concat("/" + filePath));
+                   getPlugin().parse(fileInterpreter, script, true);
                 }
                 catch (Exception e){
                     success = false;
-                    plugin.log("[Python] " + e.getLocalizedMessage());
+                    plugin.log("[Python] " + e.toString());
                     status = new Status(3, "Python Exception");
                     fileExmessage = new Message("file", status);
                     webSocket.send(this.gson.toJson(fileExmessage));
