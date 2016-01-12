@@ -10,6 +10,7 @@ import org.java_websocket.framing.CloseFrame;
 import org.java_websocket.handshake.ClientHandshake;
 import wshttpserver.HttpWebSocketServerListener;
 
+import java.io.File;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -147,7 +148,38 @@ public class PySFListener implements HttpWebSocketServerListener {
                 }
                 break;
             case FILE:
-                plugin.log("Not implemented Yet");
+                if (!auth) {
+                    status = new Status(501, "Not authenticated");
+                    loginMessage = new Message("login", status);
+                    webSocket.send(this.gson.toJson(loginMessage));
+                    return;
+                }
+                final PyInterpreter fileInterpreter = connections.get(webSocket);
+                String filePath = jsonMessage.getFilePath();
+                Message fileExmessage;
+                boolean success = true;
+                final File script;
+
+                try{
+                   script = new File(System.getProperty("user.dir").concat("/" + filePath));
+                   getPlugin().parse(fileInterpreter, script, true);
+                }
+                catch (Exception e){
+                    success = false;
+                    plugin.log("[Python] " + e.toString());
+                    status = new Status(3, "Python Exception");
+                    fileExmessage = new Message("file", status);
+                    webSocket.send(this.gson.toJson(fileExmessage));
+
+                }
+                finally {
+                    status = new Status(102, "File Executed");
+                    fileExmessage = new Message("file", status);
+                    fileExmessage.setResult("Execution: " + (success ? "successful": "unsuccessful"));
+                    webSocket.send(this.gson.toJson(fileExmessage));
+                }
+
+
                 break;
             case LOGOUT:
                 status = new Status(100, "Logout successful");
@@ -198,10 +230,14 @@ public class PySFListener implements HttpWebSocketServerListener {
         private WebSocket ws;
         private String buffer;
         private Gson gson;
+        private Status status;
+        private Message OSMessage;
         public SFLOutputStream(WebSocket ws){
             this.ws = ws;
             this.buffer = "";
             this.gson = GsonUtils.getGson();
+            status = new Status(100, "Sending result");
+            OSMessage = new Message("result", status);
         }
 
         @Override
@@ -210,17 +246,13 @@ public class PySFListener implements HttpWebSocketServerListener {
             write(bytes, 0, bytes.length);
         }
         public void write(int[] bytes, int offset, int length) {
-            Status status;
-            Message jsonMessage;
             String s = new String(bytes, offset, length);
             this.buffer += s;
             if (this.buffer.endsWith("\n")) {
-        // TODO: 15/12/15 FIX IllegalArgumentException types and labels must be unique while instatinating jsonmessage
-                status = new Status(100, "Sending result");
-                jsonMessage = new Message("interactive", status);
-                jsonMessage.setResult(this.buffer);
-                ws.send(this.gson.toJson(jsonMessage));
                 plugin.log("[Python] "+this.buffer.substring(0, this.buffer.length()-1));
+                OSMessage.setResult(this.buffer);
+                ws.send(this.gson.toJson(OSMessage));
+                // FIXME: Exception while registering a new class in type adapter types and labels must be unique
                 buffer = "";
             }
         }

@@ -85,4 +85,12 @@ public class SpongePlugin implements JyCraftPlugin {
                 .submit(this);
         return runnable.more();
     }
+    public boolean parse(InteractiveInterpreter interpreter, File script, boolean exec) throws Exception {
+        final FileRunnable runnable = new FileRunnable(this, interpreter, script, exec);
+        game.getScheduler().createTaskBuilder()
+                .name("Python script runner")
+                .execute(t -> runnable.run())
+                .submit(this);
+        return runnable.more();
+    }
 }
