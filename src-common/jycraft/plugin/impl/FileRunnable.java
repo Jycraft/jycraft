@@ -7,9 +7,6 @@ import org.python.util.InteractiveInterpreter;
 
 import java.io.File;
 
-/**
- * Created by scyth on 1/8/2016.
- */
 public class FileRunnable implements Runnable {
     private final JyCraftPlugin plugin;
     private final boolean exec;
