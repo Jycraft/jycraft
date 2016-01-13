@@ -15,17 +15,16 @@ public class ConsolePlugin {
             Thread t = new Thread(server);
             t.start();
         }
-        loadPythonPlugins("./python-plugins");
-        // if a port has been specified, it has to be greater than 0
-        if (staticserveport > -1){
+        if (staticserveport > -1){ // if a port has been specified, it has to be greater than 0
             // new file server instance
             PySFListener WsServerListener = new PySFListener(mainPlugin, serverpass);
             StaticFilesSever filesServer = new StaticFilesSever(staticserveport,staticserverootdir, staticservedir, WsServerListener);
             filesServer.start();
         }
+        loadPythonPlugins(mainPlugin, "./python-plugins");
     }
 
-    private static void loadPythonPlugins(String path) {
+    private static void loadPythonPlugins(final JyCraftPlugin mainPlugin, String path) {
         File pluginsDir = new File(path);
         if (!pluginsDir.exists() || !pluginsDir.isDirectory())
             return;
@@ -36,8 +35,12 @@ public class ConsolePlugin {
                 @Override
                 public void run() {
                     PyInterpreter interpreter = new PyInterpreter();
-                    interpreter.execfile(file.getAbsolutePath());
-                    interpreter.close();
+                    try {
+                        mainPlugin.parse(interpreter, file, true);
+                    } catch (Exception e) {
+                        mainPlugin.log("[Python] Exception while loading plugins");
+                        mainPlugin.log("[Python] " + e.toString());
+                    }
                 }
             };
             pyPlugin.start();

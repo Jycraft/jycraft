@@ -162,6 +162,8 @@ public class PySFListener implements HttpWebSocketServerListener {
 
                 try{
                    script = new File(System.getProperty("user.dir").concat("/" + filePath));
+                    if (!script.exists() || !script.isDirectory())
+                        return;
                    getPlugin().parse(fileInterpreter, script, true);
                 }
                 catch (Exception e){
