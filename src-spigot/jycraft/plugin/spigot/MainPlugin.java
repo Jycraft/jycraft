@@ -3,10 +3,13 @@ package jycraft.plugin.spigot;
 import jycraft.plugin.ConsolePlugin;
 import jycraft.plugin.JyCraftPlugin;
 
+import jycraft.plugin.impl.FileRunnable;
 import jycraft.plugin.impl.TaskRunnable;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.python.util.InteractiveInterpreter;
+
+import java.io.File;
 
 public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 
@@ -36,6 +39,17 @@ public class MainPlugin extends JavaPlugin implements JyCraftPlugin {
 			}
 		} ;
 		// run the python code on main thread
+		r.runTask(this);
+		return runnable.more();
+	}
+	public boolean parse(final InteractiveInterpreter interpreter, final File script, final boolean exec) throws Exception {
+		final FileRunnable runnable = new FileRunnable(this, interpreter, script, exec);
+		BukkitRunnable r = new BukkitRunnable() {
+			@Override
+			public void run() {
+				runnable.run();
+			}
+		};
 		r.runTask(this);
 		return runnable.more();
 	}
